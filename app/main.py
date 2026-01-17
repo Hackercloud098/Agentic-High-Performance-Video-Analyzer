@@ -25,4 +25,3 @@ def generate_titles_endpoint(req: GenerationRequest):
         raise HTTPException(status_code=404, detail="Unknown channel_id")
     suggestions = generate_titles(req.channel_id, req.summary, profile)
     return {"suggestions": suggestions}
-

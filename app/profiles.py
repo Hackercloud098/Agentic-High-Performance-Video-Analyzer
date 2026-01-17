@@ -45,6 +45,7 @@ def build_channel_profiles(input_path: str) -> dict[str, dict]:
         profile["top_keywords"] = [w for w, _ in high_words.most_common(20)]
         profile["low_keywords"] = [w for w, _ in low_words.most_common(20)]
 
+
         profiles[channel_id] = profile
 
     return profiles
