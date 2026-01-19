@@ -1,26 +1,23 @@
-"""
-Script to build initial channel profiles from the training CSV.
-"""
-
 import argparse
 from app.profiles import build_channel_profiles, save_channel_profiles
+from app.config import settings
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build channel profiles from training CSV.")
     parser.add_argument(
         "--input",
-        default="data/electrify__applied_ai_engineer__training_data.csv",
+        default=settings.training_data_path,
         help="Path to training CSV.",
     )
     parser.add_argument(
         "--output",
-        default="artifacts/channel_profiles.json",
+        default=settings.channel_profiles_path,
         help="Output path for profiles.",
     )
     args = parser.parse_args()
 
     profiles = build_channel_profiles(args.input)
-    save_channel_profiles(profiles, args.output)
+    save_channel_profiles(profiles)
     print(f"Saved profiles for {len(profiles)} channels to {args.output}")
 
 if __name__ == "__main__":

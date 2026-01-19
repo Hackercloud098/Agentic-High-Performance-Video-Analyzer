@@ -3,6 +3,7 @@ uvicorn[standard]
 openai==0.28.1
 pandas
 scikit-learn
-pydantic
 seaborn
 matplotlib
+langgraph
+pydantic

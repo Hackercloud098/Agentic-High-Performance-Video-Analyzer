@@ -1,17 +1,25 @@
-from pydantic import BaseModel
-from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
 
+training_data_path = os.environ.get(
+    "DATA_PATH",
+    "data/electrify__applied_ai_engineer__training_data.csv",
+)
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+channel_profiles_path = os.environ.get(
+    "PROFILES_OUTPUT_PATH",
+    "artifacts/channel_profiles.json",
+)
 
-    openai_api_key: str | None = None
-    model_name: str = "gpt-4o-mini"
-
-    default_num_titles: int = 5
-    default_temperature: float = 0.7
-
-    channel_profiles_path: str = "artifacts/channel_profiles.json"
-
+class Settings:
+    """
+    Settings container for config variables.
+    """
+    def __init__(self):
+        self.training_data_path: str = training_data_path
+        self.openai_api_key: str | None = os.environ.get("OPENAI_API_KEY")
+        self.model_name: str = "gpt-4o-mini"
+        self.temperature: float = 0.7
+        self.channel_profiles_path: str = channel_profiles_path
+        self.max_tokens: int = 350
 
 settings = Settings()
