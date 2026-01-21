@@ -31,4 +31,12 @@ def generate_titles_graph(req: GenerationRequest, num: int = Query(5, ge = 3, le
         "num": num
     }
     final_state = AGENT_GRAPH.invoke(initial_state)
-    return {"suggestions": final_state["final_suggestions"]}
+    
+    clean_suggestions = [
+        {"title": s["title"], "explanation": s["explanation"]}
+        for s in final_state["final_suggestions"]
+    ]
+
+    return {
+    "suggestions": clean_suggestions
+    }

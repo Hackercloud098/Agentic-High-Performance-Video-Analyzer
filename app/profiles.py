@@ -45,6 +45,9 @@ def build_channel_profiles(input_path: str) -> dict[str, dict]:
         high_group = group[group["views_in_period"] >= threshold]
         low_group = group[group["views_in_period"] < threshold]
 
+        profile["avg_title_words_high"] = high_group["title"].str.split().apply(len).mean() if len(high_group) else profile["avg_title_words"]
+        profile["avg_title_words_low"]  = low_group["title"].str.split().apply(len).mean() if len(low_group) else profile["avg_title_words"]
+        
         # Fit TF‑IDF on all titles for a given channel
         vectoriser = TfidfVectorizer(
             stop_words="english",
@@ -78,3 +81,4 @@ def save_channel_profiles(profiles: dict) -> None:
     os.makedirs(os.path.dirname(settings.channel_profiles_path), exist_ok=True)
     with open(settings.channel_profiles_path, "w") as f:
         json.dump(profiles, f, indent=2)
+
