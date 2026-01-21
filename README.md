@@ -65,19 +65,30 @@ flowchart TB
 ### Directory Structure
 
 app/
+  
   __init__.py
+  
   main.py          # FastAPI application and HTTP endpoints; loads profiles
+  
   config.py        # Centralised configuration (paths, model name, temperature, LLM)
+  
   profiles.py      # Builds per‑channel profiles from the CSV using TF–IDF and computes statistics
+  
   generator.py     # Prompt, LLM call and scoring
+  
   agent_graph.py   # Defines the simple generate→score→select_top agent workflow
 data/
+  
   electrify__applied_ai_engineer__training_data.csv  # Training data
 scripts/
+  
   train_local.py   # Script to build channel profiles
+  
   EDA.ipynb # Initial exploratory analysis on each channel
+  
   Advanced Feature Engineering.ipynb # Further analysis on keyword extraction
 artifacts/
+  
   channel_profiles.json  # Generated profiles
 
 
@@ -87,7 +98,7 @@ artifacts/
 1. Clone this repository and set it as the project directory.
 
 2. Create a virtual environment (recommended):
-    - python3 -m venv .venv
+    - python -m venv .venv
     - source .venv\Scripts\activate
 
 3. Install dependencies from requirements.txt:

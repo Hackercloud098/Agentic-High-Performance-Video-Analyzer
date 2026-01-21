@@ -5,6 +5,7 @@ import re
 import pandas as pd
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS, TfidfVectorizer
 from app.config import settings
+from typing import Optional
 
 def _tokenize_no_stop(text: str) -> list[str]:
     """
@@ -20,33 +21,52 @@ def _tokenize_no_stop(text: str) -> list[str]:
         and not(w.isdigit())
     ]
 
+def get_top_openers(titles: pd.Series, k: int = 5):
+    first_words = (
+        titles.astype(str)
+        .str.strip()
+        .str.split()
+        .str[0]
+        .dropna()
+        .str.lower()
+    )
+
+    if first_words.empty:
+        return []
+
+    counts = first_words.value_counts()
+    total = int(counts.sum())
+    top = counts.head(k)
+
+    return [{"word": w, "rate": float(c) / total} for w, c in top.items()]
+
 def build_channel_profiles(input_path: str) -> dict[str, dict]:
     df = pd.read_csv(input_path)
     profiles: dict[str, dict] = {}
-
-    # Precompute clean titles once
     df["clean_title"] = df["title"].apply(lambda t: " ".join(_tokenize_no_stop(t)))
 
     for channel_id, group in df.groupby("channel_id"):
         profile: dict = {}
-
-        # Basic stats
-        profile["num_videos"] = len(group)
-        profile["mean_views"] = group["views_in_period"].mean()
-        profile["median_views"] = group["views_in_period"].median()
-        profile["avg_title_words"] = group["title"].str.split().apply(len).mean()
-        profile["avg_title_chars"] = group["title"].str.len().mean()
-        profile["number_rate"] = group["title"].str.contains(r"\d").mean()
-        profile["question_rate"] = group["title"].str.contains(r"\?").mean()
-        profile["exclamation_rate"] = group["title"].str.contains(r"!").mean()
 
         # Split into high/low performance videos
         threshold = group["views_in_period"].quantile(0.75)
         high_group = group[group["views_in_period"] >= threshold]
         low_group = group[group["views_in_period"] < threshold]
 
-        profile["avg_title_words_high"] = high_group["title"].str.split().apply(len).mean() if len(high_group) else profile["avg_title_words"]
-        profile["avg_title_words_low"]  = low_group["title"].str.split().apply(len).mean() if len(low_group) else profile["avg_title_words"]
+        # Basic stats
+        profile["num_videos"] = len(group)
+        profile["mean_views"] = group["views_in_period"].mean()
+        profile["median_views"] = group["views_in_period"].median()
+        profile["avg_title_words_high"] = high_group["title"].str.split().apply(len).mean()
+        profile["avg_title_chars_high"] = high_group["title"].str.len().mean()
+        profile["number_rate_high"] = high_group["title"].str.contains(r"\d").mean()
+        profile["question_rate_high"] = high_group["title"].str.contains(r"\?").mean()
+        profile["exclamation_rate_high"] = high_group["title"].str.contains(r"!").mean()
+        profile["colon_rate_high"] = high_group["title"].astype(str).str.contains(r":").mean()
+        if len(high_group) >= 3:
+            profile["top_openers_high"] = get_top_openers(high_group["title"], k=5)
+        else:
+            profile["top_openers_high"] = get_top_openers(group["title"], k=5)
         
         # Fit TF‑IDF on all titles for a given channel
         vectoriser = TfidfVectorizer(
@@ -73,12 +93,14 @@ def build_channel_profiles(input_path: str) -> dict[str, dict]:
         profile["top_keywords"] = [t for t, _ in sorted_tfidf[:20]]
         profile["low_keywords"] = [t for t, _ in sorted_tfidf[-20:]]
 
+
         profiles[channel_id] = profile
 
     return profiles
 
-def save_channel_profiles(profiles: dict) -> None:
-    os.makedirs(os.path.dirname(settings.channel_profiles_path), exist_ok=True)
-    with open(settings.channel_profiles_path, "w") as f:
-        json.dump(profiles, f, indent=2)
 
+def save_channel_profiles(profiles: dict, output_path: Optional[str] = None) -> None:
+    path = output_path or settings.channel_profiles_path
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(profiles, f, indent=2)

@@ -16,7 +16,13 @@ class AgentState(TypedDict, total=False):
 
 
 def generate_candidates_node(state: AgentState) -> AgentState:
-    prompt = build_prompt(state["channel_id"], state["summary"], state["profile"])
+    n = int(state.get("num", 5))
+    prompt = build_prompt(
+        state["channel_id"],
+        state["summary"],
+        state["profile"],
+        num=n,
+    )
     raw_response = call_llm(prompt)
     parsed = parse_llm_response(raw_response)
     state["raw_candidates"] = parsed

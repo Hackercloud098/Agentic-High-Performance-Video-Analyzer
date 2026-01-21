@@ -17,7 +17,7 @@ def main() -> None:
     args = parser.parse_args()
 
     profiles = build_channel_profiles(args.input)
-    save_channel_profiles(profiles)
+    save_channel_profiles(profiles, args.output)
     print(f"Saved profiles for {len(profiles)} channels to {args.output}")
 
 if __name__ == "__main__":
