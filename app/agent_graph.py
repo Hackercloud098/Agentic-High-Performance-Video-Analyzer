@@ -26,7 +26,7 @@ def generate_candidates_node(state: AgentState) -> AgentState:
     raw_response = call_llm(prompt)
     parsed = parse_llm_response(raw_response)
     state["raw_candidates"] = parsed
-    return state
+    return state                    
 
 
 def score_candidates_node(state: AgentState) -> AgentState:
@@ -42,7 +42,6 @@ def score_candidates_node(state: AgentState) -> AgentState:
         })
     state["scored_candidates"] = normalise_scores(scored)
     return state
-
 
 
 def select_top_node(state: AgentState) -> AgentState:

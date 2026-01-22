@@ -14,6 +14,7 @@ def load_profiles():
     global PROFILES
     PROFILES = build_channel_profiles(settings.training_data_path)
 
+
 class GenerationRequest(BaseModel):
     channel_id: str
     summary: str
@@ -23,7 +24,7 @@ class GenerationRequest(BaseModel):
 def generate_titles_graph(req: GenerationRequest, num: int = Query(5, ge = 3, le = 5, description = "Number of titles to return.")):
     profile = PROFILES.get(req.channel_id)
     if not profile:
-        raise HTTPException(status_code=404, detail="Unknown channel")
+        raise HTTPException(status_code=404, detail="Unknown channel. Please ensure to provide a valid channel_id.")
     initial_state = {
         "channel_id": req.channel_id,
         "summary": req.summary,

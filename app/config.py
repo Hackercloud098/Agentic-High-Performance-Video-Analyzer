@@ -18,7 +18,7 @@ class Settings:
         self.training_data_path: str = training_data_path
         self.openai_api_key: str | None = os.environ.get("OPENAI_API_KEY")
         self.model_name: str = "gpt-4o-mini"
-        self.temperature: float = 0.7
+        self.temperature: float = 0.4
         self.channel_profiles_path: str = channel_profiles_path
         self.max_tokens: int = 350
 

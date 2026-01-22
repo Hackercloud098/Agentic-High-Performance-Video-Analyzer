@@ -54,59 +54,60 @@ def normalise_scores(candidates: list[dict]) -> list[dict]:
 
 def build_prompt(channel_id: str, summary: str, profile: dict, num: int = 5) -> str:
     avg_words = round(profile["avg_title_words_high"])
-    top_terms = ", ".join(profile.get("top_keywords", [])[:12])
-    low_terms = ", ".join(profile.get("low_keywords", [])[:12])
+
+    high_kws = profile.get("top_keywords", [])[:12]
+    low_kws  = profile.get("low_keywords", [])[:12]
+    high_kw_str = ", ".join(high_kws) or "N/A"
+    low_kw_str  = ", ".join(low_kws)  or "N/A"
+
+    openers = profile.get("top_openers_high", [])[:5]
+    opener_map = ", ".join([f"{o['word']}={o['rate']:.0%}" for o in openers]) or "N/A"
+    opener_words = [o["word"] for o in openers]
+    opener_words_str = ", ".join(opener_words) or "N/A"
 
     colon_rate = profile.get("colon_rate_high", 0.0)
-    openers = profile.get("top_openers_high", [])[:5]
-    openers_str = ", ".join([f"{o['word']} ({o['rate']:.0%})" for o in openers]) or "N/A"
-
     number_rate = profile.get("number_rate_high", 0.0)
     question_rate = profile.get("question_rate_high", 0.0)
     exclamation_rate = profile.get("exclamation_rate_high", 0.0)
 
     return (
-        "You are generating YouTube titles and one‑sentence, data‑grounded explanations.\n\n"
+        "Generate high-quality YouTube titles and 1-sentence explanations.\n"
+        "Output ONLY valid JSON: an array of exactly "
+        f"{num} objects with keys \"title\" and \"explanation\".\n\n"
         f"Channel: {channel_id}\n"
-        f"Video summary: \"{summary}\"\n\n"
-        f"Return a JSON array of exactly {num} objects. Each object must have keys \"title\" and \"explanation\". "
-        "No extra text, no markdown.\n\n"
+        f"Summary: {summary}\n\n"
 
-        "Title guidelines:\n"
-        "- Be faithful to the summary: do not introduce new people, organizations, locations, or events not mentioned in the summary.\n"
-        "- Preserve key multi‑word phrases from the summary (for example, keep 'solar‑powered tank technology' intact).\n"
-        f"- Aim for roughly {avg_words} words per title; variation is OK.\n"
-        "- Each title should start with a different first word.\n"
-        f"- High‑performing keywords (use sparingly if they fit): {top_terms}\n"
-        f"- Low‑performing keywords (avoid unless necessary): {low_terms}\n"
-        f"- Colon ':' appears in ~{colon_rate:.0%} of high‑performing titles; numbers in ~{number_rate:.0%}; "
-        f"question marks in ~{question_rate:.0%}; exclamation marks in ~{exclamation_rate:.0%}.\n"
-        f"- Common opening words: {openers_str}. Use one of these in 1–2 titles if it fits naturally.\n"
-        "- Use high‑performing keywords only as adjectives modifying concepts that already appear in the summary. Do not use them as new nouns or subjects; skip any keyword that can’t be used without changing the topic.\n"
-        "- Avoid over‑using strong or emotional keywords (e.g. 'fearsome', 'warriors') unless the summary clearly implies conflict or crisis.\n"
-        "- Do not force keywords or colons; avoid generic openers like \"Exploring\" or \"A look at\".\n\n"
+        "Style signals (high performers):\n"
+        f"- avg words ~{avg_words}\n"
+        f"- openers (word=rate): {opener_map}\n"
+        f"- HIGH keywords (single words): {high_kw_str}\n"
+        f"- avoid keywords: {low_kw_str}\n"
+        f"- rates: ':' {colon_rate:.0%}, numbers {number_rate:.0%}, '?' {question_rate:.0%}, '!' {exclamation_rate:.0%}\n\n"
 
-        "Explanation guidelines:\n"
-        "- Exactly one sentence in plain English.\n"
-        "- The sentence must follow a strict data‑grounded pattern: only report measurable facts from the title and channel signals. Do not summarize, interpret, or add narrative content.\n"
-        f"- Always include the title’s word count and compare it to avg≈{avg_words}.\n"
-        "- If the title contains a high‑performing keyword from the list (verbatim, case‑insensitive), mention it as high‑performing keyword \"<kw>\" in the sentence; otherwise omit keywords entirely.\n"
-        "- Mention the opening word and its rate only if the first word is one of the common openers listed above.\n"
-        "- Mention that the title uses a colon only if a ':' is present; otherwise omit.\n"
-        "- Mention numbers only if the title includes digits; otherwise omit numbers.\n"
-        "- Never mention the absence of any feature (e.g. never say 'no high‑performing keyword'). Omit clauses for features that aren’t present.\n"
-        "- Do not mention '?' or '!'.\n\n"
+        "TITLE RULES:\n"
+        "- Faithful to the summary; do NOT add entities/places/events not mentioned.\n"
+        f"- Aim for {avg_words} words (+/-2).\n"
+        "- Each title starts with a DIFFERENT first word.\n"
+        "- Use 0-2 HIGH keywords total across all titles, and never repeat the same HIGH keyword.\n"
+        "- Avoid low keywords unless necessary.\n"
+        f"- If ':' rate is ~0%, do NOT use ':'. If '!' rate is ~0%, do NOT use '!'. If '?' rate is ~0%, do NOT use '?'.\n\n"
 
-        "Use this pattern (fill in only the clauses that apply; do not add extra details):\n"
-        f"  \"At <WC> words (avg≈{avg_words}), [optional: this title starts with '<FirstWord>' (<Rate>)]"
-        " [optional: uses the high‑performing keyword \"<kw>\"]"
-        " [optional: contains a colon] [optional: includes the number <N>].\"\n"
+        "EXPLANATION RULES (STRICT, NO STORY):\n"
+        "- Exactly ONE sentence.\n"
+        f"- MUST begin: \"At <WC> words (avg≈{avg_words})\".\n"
+        "- Then add ONLY these optional clauses, ONLY if true:\n"
+        f"  * \"; opener '<FirstWord>' (<Rate>)\" ONLY if FirstWord is exactly one of [{opener_words_str}] (case-insensitive), and Rate must be copied from the opener map.\n"
+        f"  * \"; high keyword '<kw>'\" ONLY if <kw> is exactly one of [{high_kw_str}] (case-insensitive) AND appears as a whole word in the title.\n"
+        "  * \"; number <N>\" ONLY if digits appear in the title.\n"
+        "  * \"; colon\" ONLY if ':' appears in the title.\n"
+        "- Do NOT add any other text (no mission/impact/meaning/scientists/etc).\n"
+        "- NEVER mention absence (no 'no', 'none', 'does not'). If not present, omit the clause.\n"
+        "- Self-check before output: if you wrote an opener/keyword/number/colon clause and it is not provably true from the title + lists, DELETE that clause.\n"
+       '- The "number <N>" clause is allowed ONLY if the title text contains a digit 0-9 (e.g., "3", "10"). Never use the word count as the number.\n'
+        "- If there is no digit in the title, do not mention numbers at all.\n"
+        "- If you include an opener rate, write it as a percentage like 37%.\n"
+        "- Word count = split on spaces.\n"
     )
-
-
-
-
-
 
 
 def call_llm(prompt: str) -> str:
